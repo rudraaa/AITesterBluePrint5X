@@ -1,0 +1,32 @@
+{
+  "pageTitle": "Login - Wingify",
+  "expectedErrorMessage": "Your email, password, IP address or location did not match",
+  "dashboardUrlPattern": "#/dashboard",
+  "freeTrialHrefPattern": "wingify\\.com/free-trial",
+  "fallbackEmail": "qa.automation.user@example.com",
+  "fallbackPassword": "Valid@Pass123",
+  "invalidLogins": [
+    {
+      "id": "TC_02",
+      "title": "Invalid email with valid password shows an error",
+      "email": "invalid.user.qa@example.com",
+      "password": "{{VALID_PASSWORD}}"
+    },
+    {
+      "id": "TC_03",
+      "title": "Valid email with invalid password shows an error",
+      "email": "{{VALID_EMAIL}}",
+      "password": "WrongPass@123"
+    },
+    {
+      "id": "TC_04",
+      "title": "Empty email and password shows an error",
+      "email": "",
+      "password": ""
+    }
+  ],
+  "invalidEmailFormats": [
+    { "id": "TC_05a", "email": "abc@" },
+    { "id": "TC_05b", "email": "abc.com" }
+  ]
+}

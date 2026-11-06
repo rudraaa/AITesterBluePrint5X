@@ -14,6 +14,7 @@ Hands-on course material from **The Testing Academy** for testers moving into AI
   - [00 · Agent Skill Basics](#00--agent-skill-basics)
   - [01 · LLM Fundamentals from Scratch](#01--llm-fundamentals-from-scratch)
   - [02 · Prompt Engineering: RICE-POT to a Selenium Framework](#02--prompt-engineering-rice-pot-to-a-selenium-framework)
+  - [02b · Prompt Engineering: RICE-POT to a Playwright Framework](#02b--prompt-engineering-rice-pot-to-a-playwright-framework)
 - [Learnings](#-learnings)
 
 ---
@@ -24,9 +25,10 @@ Hands-on course material from **The Testing Academy** for testers moving into AI
 flowchart LR
     C0["Ch 00 · Agent Skills<br/>SKILL.md basics + advanced"] --> C1["Ch 01 · LLM Fundamentals<br/>13 lessons, one HTML guide"]
     C1 --> C2["Ch 02 · Prompt Engineering<br/>RICE-POT -> Selenium framework"]
+    C2 --> C2b["Ch 02b · Prompt Engineering<br/>RICE-POT -> Playwright framework"]
 
     classDef done fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
-    class C0,C1,C2 done
+    class C0,C1,C2,C2b done
 ```
 
 ---
@@ -38,6 +40,7 @@ flowchart LR
 | 00 | [Agent Skill Basics](Chapter_00_SKILL_Basics/) | A basic and an advanced test-plan skill (Jira ticket -> reviewed test plan) | `SKILL.md` + references + scripts | ✅ |
 | 01 | [LLM Fundamentals from Scratch](Chapter_01_LLM_Basics/) | 13 plain-words lessons: tokens, temperature, context, RAG, MCP, agents, testing LLM output | Single-file HTML guide | ✅ |
 | 02 | [Prompt Engineering](Chapter_02_Prompt_Engineering/RICE_POT/) | A RICE-POT prompt turned into a Selenium + Java framework for the Salesforce login page, run headless and headed | Maven + TestNG + Allure | ✅ |
+| 02b | [Prompt Engineering · Playwright](Chapter_02_Prompt_Engineering/RICE_POT/PlaywrightFramework/) | The same RICE-POT approach turned into a Playwright + TypeScript framework for the VWO (Wingify) login page | Playwright Test + Allure | ✅ |
 
 ---
 
@@ -62,8 +65,16 @@ AITesterBlueprint5x/
 │   └── LLM_Fundamentals.html                # 13-lesson guide, open in any browser
 ├── Chapter_02_Prompt_Engineering/
 │   └── RICE_POT/
-│       ├── REALPROMPT_RICE_POT.md           # the filled RICE-POT prompt behind the framework
+│       ├── REALPROMPT_RICE_POT.md           # the filled RICE-POT prompt behind the Selenium framework
+│       ├── REALPROMPT_RICE_POT_Playwright.md  # the filled RICE-POT prompt behind the Playwright framework
 │       ├── Template_RICE_POT/               # blank RICE-POT template + guardrail block
+│       ├── PlaywrightFramework/             # Playwright Test + TypeScript + Allure (Chromium)
+│       │   ├── playwright.config.ts         # baseURL, retries, reporters, chromium project
+│       │   ├── .env.example                 # VWO_BASE_URL, VWO_EMAIL, VWO_PASSWORD
+│       │   ├── pages/                       # BasePage.ts, LoginPage.ts
+│       │   ├── fixtures/baseFixture.ts      # injects loginPage + credentials
+│       │   ├── test-data/login.json         # expected texts + data-driven invalid cases
+│       │   └── tests/                       # login.valid.spec.ts, login.invalid.spec.ts
 │       └── SeleniumFramework/               # Maven + TestNG + Selenium 4 + Allure
 │           ├── pom.xml
 │           ├── testng.xml                   # "Valid Login" and "Invalid Login" tests
@@ -102,6 +113,12 @@ EOF
 # Chapter 02: needs Java 17+, Maven and Chrome (Selenium Manager downloads the driver)
 cd Chapter_02_Prompt_Engineering/RICE_POT/SeleniumFramework
 mvn clean test
+
+# Chapter 02b: needs Node.js 18+
+cd ../PlaywrightFramework
+npm install
+npx playwright install chromium
+npm test
 ```
 
 ---
@@ -297,6 +314,60 @@ allure serve target/allure-results      # needs the Allure CLI (brew install all
 ```
 
 Every `config.properties` key (`base.url`, `browser`, `headless`, `explicit.wait.seconds`, `page.load.timeout.seconds`) can be overridden with `-Dkey=value`. When a test or a setUp fails, a screenshot, the URL and the page source are attached to the Allure report.
+
+---
+
+### 02b · Prompt Engineering: RICE-POT to a Playwright Framework
+
+**Concept:** The same RICE-POT structure, rewritten for Playwright + TypeScript ([REALPROMPT_RICE_POT_Playwright.md](Chapter_02_Prompt_Engineering/RICE_POT/REALPROMPT_RICE_POT_Playwright.md)) and turned into a framework for the VWO (Wingify) login page at `app.wingify.com/#/login`. The requirement came from the VWO login PRD. Every locator and every expected text in the prompt's Context block was captured from the live page first, so the model has nothing to guess.
+
+**Why:** The Selenium chapter showed that the live page, not the prompt, is the truth. Here that lesson moves into the prompt itself: a "Verified UI facts" list in Context, plus a guardrail that says to write `TODO_VERIFY` instead of inventing a value.
+
+**Q&A: why use this?**
+- **Q: When do I reach for this version?** A: When your team writes UI tests in Playwright and wants generated code to use fixtures, web-first assertions and role-based locators instead of Selenium habits.
+- **Q: What changed from the Selenium prompt?** A: XPath-only became `getByRole` → `getByLabel` → stable `#id`; `Thread.sleep` bans became `waitForTimeout` and `force: true` bans; TestNG annotations became `test.extend` fixtures and `test.step`.
+- **Q: What's the gotcha?** A: Three things the PRD didn't say but the live page did. `getByLabel('Email address')` matches 4 elements because of hidden forms, so the email field uses `#login-username`. The Remember me `<input>` is visually hidden, so tests click its label. A failed login can take more than 15 seconds to answer, and repeated failures get throttled, so invalid-login tests run one at a time and wait up to 30 seconds.
+
+**How each RICE-POT block shows up in the code**
+
+| Block | What the prompt asked for | Where it lives |
+|:------|:--------------------------|:---------------|
+| R · Role | Senior Playwright + VWO QA architect | Test titles and tags (`@smoke`, `@negative`, `@ui`, `@regression`) |
+| I · Instructions | POM, fixtures, role-first locators, `.env`, data-driven, Allure, no hard waits | `pages/`, `fixtures/baseFixture.ts`, `playwright.config.ts` |
+| C · Context | Verified locators and texts from the live page | `LoginPage.ts` locators, `test-data/login.json` |
+| E · Example | `LoginPage` with `readonly` locators and a `login()` method | `LoginPage.ts` |
+| P · Parameters | Strict TypeScript, independent tests, web-first `expect` | `tsconfig.json` (`strict: true`), every spec |
+| O · Output | An exact list of 10 files | The `PlaywrightFramework/` folder |
+| T · Tone | Code only | No comments in the source |
+
+**Test cases**
+
+| Spec | Test | Checks |
+|:-----|:-----|:-------|
+| `login.valid.spec.ts` | TC_01 Valid login | URL matches `#/dashboard`; skipped unless `VWO_EMAIL` and `VWO_PASSWORD` are set |
+| | TC_06 Password masking | `type="password"`, and the eye toggle switches it to `type="text"` |
+| | TC_07 Remember me | Unchecked by default, toggles on and off |
+| | TC_08 Free trial link | Title `Login - Wingify`; link `href` contains `wingify.com/free-trial` |
+| `login.invalid.spec.ts` | TC_02 / TC_03 / TC_04 (data-driven) | `Your email, password, IP address or location did not match`, user stays on `#/login` |
+| | TC_05a / TC_05b | `abc@` and `abc.com` fail the browser's email validation |
+
+Last run (2026-11-05, Chromium): 9 tests, 7 passed, 1 skipped (valid login), 1 failed (TC_04, flaky). In that run the site gave no response to an empty submit, after many failed logins from the same network. TC_04 passed in the two runs before it.
+
+**Code sample:** run it, then open the reports.
+
+```bash
+cd Chapter_02_Prompt_Engineering/RICE_POT/PlaywrightFramework
+cp .env.example .env                    # add a real VWO account to enable TC_01
+
+npm test                                # all tests, Chromium
+npm run test:smoke                      # @smoke only (also: test:negative, test:ui)
+npm run typecheck                       # strict TypeScript check
+
+npm run report:html                     # Playwright HTML report
+npm run allure:generate && npm run allure:open   # Allure report (needs Java)
+```
+
+Screenshots, videos and traces are kept only for failed tests (`retain-on-failure`). Set `video: 'on'` in `playwright.config.ts` to record every test.
 
 ---
 

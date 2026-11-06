@@ -1,0 +1,24 @@
+{
+  "name": "vwo-login-playwright-framework",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise Playwright + TypeScript framework for the VWO (Wingify) login page",
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:negative": "playwright test --grep @negative",
+    "test:ui": "playwright test --grep @ui",
+    "typecheck": "tsc --noEmit",
+    "report:html": "playwright show-report",
+    "allure:generate": "allure generate allure-results --clean -o allure-report",
+    "allure:open": "allure open allure-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.48.2",
+    "@types/node": "20.16.10",
+    "allure-commandline": "2.30.0",
+    "allure-playwright": "3.0.5",
+    "dotenv": "16.4.5",
+    "typescript": "5.6.3"
+  }
+}

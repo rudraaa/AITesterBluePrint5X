@@ -15,6 +15,7 @@ Hands-on course material from **The Testing Academy** for testers moving into AI
   - [01 · LLM Fundamentals from Scratch](#01--llm-fundamentals-from-scratch)
   - [02 · Prompt Engineering: RICE-POT to a Selenium Framework](#02--prompt-engineering-rice-pot-to-a-selenium-framework)
   - [02b · Prompt Engineering: RICE-POT to a Playwright Framework](#02b--prompt-engineering-rice-pot-to-a-playwright-framework)
+  - [02c · Prompt Engineering: Anti-Hallucination Rules Experiment](#02c--prompt-engineering-anti-hallucination-rules-experiment)
 - [Learnings](#-learnings)
 
 ---
@@ -26,9 +27,10 @@ flowchart LR
     C0["Ch 00 · Agent Skills<br/>SKILL.md basics + advanced"] --> C1["Ch 01 · LLM Fundamentals<br/>13 lessons, one HTML guide"]
     C1 --> C2["Ch 02 · Prompt Engineering<br/>RICE-POT -> Selenium framework"]
     C2 --> C2b["Ch 02b · Prompt Engineering<br/>RICE-POT -> Playwright framework"]
+    C2b --> C2c["Ch 02c · Prompt Engineering<br/>Anti-hallucination rules experiment"]
 
     classDef done fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
-    class C0,C1,C2,C2b done
+    class C0,C1,C2,C2b,C2c done
 ```
 
 ---
@@ -41,6 +43,7 @@ flowchart LR
 | 01 | [LLM Fundamentals from Scratch](Chapter_01_LLM_Basics/) | 13 plain-words lessons: tokens, temperature, context, RAG, MCP, agents, testing LLM output | Single-file HTML guide | ✅ |
 | 02 | [Prompt Engineering](Chapter_02_Prompt_Engineering/RICE_POT/) | A RICE-POT prompt turned into a Selenium + Java framework for the Salesforce login page, run headless and headed | Maven + TestNG + Allure | ✅ |
 | 02b | [Prompt Engineering · Playwright](Chapter_02_Prompt_Engineering/RICE_POT/PlaywrightFramework/) | The same RICE-POT approach turned into a Playwright + TypeScript framework for the VWO (Wingify) login page | Playwright Test + Allure | ✅ |
+| 02c | [Prompt Engineering · Anti-hallucination](Chapter_02_Prompt_Engineering/TestCaseEvaluation_whenrulesApplied.md) | The same test-case prompt run without and with anti-hallucination rules, then every flagged gap researched: 58 → 61 → 73 VWO login test cases | Excel workbooks + evaluation write-up | ✅ |
 
 ---
 
@@ -64,10 +67,13 @@ AITesterBlueprint5x/
 ├── Chapter_01_LLM_Basics/
 │   └── LLM_Fundamentals.html                # 13-lesson guide, open in any browser
 ├── Chapter_02_Prompt_Engineering/
+│   ├── TestCaseEvaluation_whenrulesApplied.md   # with vs without anti-hallucination rules, gap analysis
 │   └── RICE_POT/
 │       ├── REALPROMPT_RICE_POT.md           # the filled RICE-POT prompt behind the Selenium framework
 │       ├── REALPROMPT_RICE_POT_Playwright.md  # the filled RICE-POT prompt behind the Playwright framework
 │       ├── Template_RICE_POT/               # blank RICE-POT template + guardrail block
+│       │   ├── Template.RICEPOT_Without_Antihallucination.md     # VWO test-case prompt, no rules
+│       │   └── Template.RICEPOT_With_AntihallucinationRules.md   # same prompt + 6 anti-hallucination rules
 │       ├── PlaywrightFramework/             # Playwright Test + TypeScript + Allure (Chromium)
 │       │   ├── playwright.config.ts         # baseURL, retries, reporters, chromium project
 │       │   ├── .env.example                 # VWO_BASE_URL, VWO_EMAIL, VWO_PASSWORD
@@ -88,7 +94,7 @@ AITesterBlueprint5x/
 │                   │   └── tests/                   # ValidLoginTest, InvalidLoginTest
 │                   └── resources/                   # config.properties, allure.properties
 ├── learnings/                               # one-page approach notes per solved problem
-├── output/                                  # generated test plans (HTML + PDF)
+├── output/                                  # generated test plans (HTML + PDF) and VWO test case workbooks (.xlsx)
 └── .env                                     # Jira credentials, git-ignored
 ```
 
@@ -368,6 +374,59 @@ npm run allure:generate && npm run allure:open   # Allure report (needs Java)
 ```
 
 Screenshots, videos and traces are kept only for failed tests (`retain-on-failure`). Set `video: 'on'` in `playwright.config.ts` to record every test.
+
+---
+
+### 02c · Prompt Engineering: Anti-Hallucination Rules Experiment
+
+**Concept:** One RICE-POT prompt for VWO login test cases, run twice: [without](Chapter_02_Prompt_Engineering/RICE_POT/Template_RICE_POT/Template.RICEPOT_Without_Antihallucination.md) and [with](Chapter_02_Prompt_Engineering/RICE_POT/Template_RICE_POT/Template.RICEPOT_With_AntihallucinationRules.md) six anti-hallucination rules (deterministic output, traceable assertions, "Insufficient information to determine.", "Inference (low confidence)", no invented features, no assumed behaviour). Then every gap the rules flagged was researched on the live page and in VWO's help center. The full write-up is in [TestCaseEvaluation_whenrulesApplied.md](Chapter_02_Prompt_Engineering/TestCaseEvaluation_whenrulesApplied.md).
+
+**Why:** To measure what the rules actually change, instead of assuming that "more rules = better test cases".
+
+**Q&A: why use this?**
+- **Q: When do I add anti-hallucination rules?** A: Whenever the AI writes expected results a tester will trust: error texts, limits, timeouts, policies. They stop the model inventing values.
+- **Q: What do they replace?** A: Placeholders such as `<configured value>` and unlabelled assumptions, which make a test sheet look finished when it isn't.
+- **Q: What's the gotcha?** A: The rules find gaps but don't fill them. Of 26 flagged gaps, 12 were answerable from the live page or public docs. Add one more rule: "check the live app and official docs before answering *Insufficient information*".
+
+```mermaid
+flowchart LR
+    V1["V1 · Without rules<br/>58 test cases<br/>gaps hidden"] --> V2["V2 · With rules<br/>61 test cases<br/>26 gaps flagged"]
+    V2 --> R["Research<br/>live page + VWO help center"]
+    R --> V3["V3 · Gaps filled<br/>73 test cases<br/>12 filled · 3 partial · 11 open"]
+
+    classDef gap fill:#fff3e0,stroke:#ef6c00,color:#e65100
+    classDef done fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+    class V2 gap
+    class V3 done
+```
+
+**Results**
+
+| | V1 Without rules | V2 With rules | V3 Rules + gaps filled |
+|:--|:-:|:-:|:-:|
+| Test cases | 58 | 61 | 73 |
+| Gaps visible in the sheet | 0 (hidden) | 26 | 12 |
+| Ready to run (no unknown or guessed value) | 57* | 35 | 52 |
+| Confirmed on the live page | 23 | 22 | 29 |
+| Backed by an official VWO help article | 0 | 0 | 15 |
+| PRD vs live page mismatches found | 0 | 0 | 4 |
+
+\* Inflated: V1's assumptions weren't labelled, so they look ready but aren't checked.
+
+**Key findings**
+- The rules made the test cases more honest, not more accurate. None of the expected results checked were wrong in either version, but V2 labels every assumption and states every missing value.
+- The research step added 11 test cases the PRD never mentions (2FA backup codes and rate limits, password expiry and reuse, IP allowlist, login alerts, workspace memory) and restored TC_034 Logout.
+- It also found a likely defect: the PRD requires email validation when leaving the field (TC_029), and the live page doesn't do it.
+
+**Workbooks in [output/](output/)**
+
+| File | Contents |
+|:--|:--|
+| `VWO_Login_Test_Cases_WithoutAntihallucinarion rules.xlsx` | V1: 58 test cases, test plan, summary, open questions |
+| `VWO_Login_Test_Cases_WithAntihallucination rules.xlsx` | V2: 61 test cases with a Confidence column |
+| `VWO_TestCases_Comparison.xlsx` | V1 vs V2: overview, side by side, impact of each rule |
+| `VWO_Login_Test_Cases_GapsFilled.xlsx` | V3: 73 test cases, Gap Register (26 gaps + 11 open questions), Sources |
+| `VWO_TestCases_Before_After_Comparison.xlsx` | V1 vs V2 vs V3: overview, Gap Register, side by side |
 
 ---
 
